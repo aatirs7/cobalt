@@ -36,6 +36,7 @@ export const useProfile = create<ProfileState>()(
   persist(
     (set, get) => ({
       _hydrated: false,
+      markHydrated: () => set({ _hydrated: true }),
       onboardedAt: null,
       displayName: 'You',
       ratings: seedRatingsAt(INITIAL_RATING),

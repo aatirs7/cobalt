@@ -23,10 +23,15 @@ import { TIMING } from '@/motion/useMotion';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+const allHydrated = () =>
+  useSettings.persist.hasHydrated() &&
+  useProfile.persist.hasHydrated() &&
+  useToday.persist.hasHydrated();
+
 export default function RootLayout() {
   const theme = useTheme();
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SourceSerif4_400Regular,
     SourceSerif4_500Medium,
     Inter_300Light,
@@ -36,10 +41,40 @@ export default function RootLayout() {
 
   // Every persisted store must land before the first paint, or the app flashes
   // the default palette and then snaps to the chosen one.
-  const settingsReady = useSettings((s) => s._hydrated);
-  const profileReady = useProfile((s) => s._hydrated);
-  const daysReady = useToday((s) => s._hydrated);
-  const ready = fontsLoaded && settingsReady && profileReady && daysReady;
+  //
+  // Read through zustand's own persist API rather than a flag on the state.
+  // hasHydrated is authoritative and cannot be missed, whereas a flag set from
+  // outside an action never notifies subscribers, which is exactly how an
+  // earlier version of this file deadlocked on the splash screen forever.
+  const [storesReady, setStoresReady] = useState(allHydrated);
+
+  useEffect(() => {
+    if (storesReady) return;
+
+    const check = () => {
+      if (allHydrated()) setStoresReady(true);
+    };
+
+    const unsubscribe = [
+      useSettings.persist.onFinishHydration(check),
+      useProfile.persist.onFinishHydration(check),
+      useToday.persist.onFinishHydration(check),
+    ];
+    // Hydration can finish between first render and this effect running.
+    check();
+
+    // Nothing about reading local storage justifies an unbootable app. If it
+    // has not landed by now, start with defaults rather than hanging.
+    const bail = setTimeout(() => setStoresReady(true), 4000);
+
+    return () => {
+      unsubscribe.forEach((u) => u());
+      clearTimeout(bail);
+    };
+  }, [storesReady]);
+
+  // A missing font must degrade to a system face, never block launch.
+  const ready = (fontsLoaded || !!fontError) && storesReady;
 
   // The native splash holds until everything is loaded, then hands off to the
   // animated mark. Handing off rather than cross fading means the user never

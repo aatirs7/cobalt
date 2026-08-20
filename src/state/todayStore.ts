@@ -82,6 +82,7 @@ export const useToday = create<TodayState>()(
   persist(
     (set, get) => ({
       _hydrated: false,
+      markHydrated: () => set({ _hydrated: true }),
       days: {},
 
       ensureDay: (date) => {

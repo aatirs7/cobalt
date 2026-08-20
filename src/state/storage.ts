@@ -24,11 +24,25 @@ export const jsonStorage = createJSONStorage(() => AsyncStorage);
  * before deciding which route to show. Without it the app flashes onboarding at
  * users who finished it months ago.
  */
-export type Hydratable = { _hydrated: boolean };
+export type Hydratable = {
+  _hydrated: boolean;
+  /**
+   * Must go through an action so zustand calls set() and notifies subscribers.
+   * Assigning to the rehydrated state object directly does mutate it, but no
+   * listener ever fires, so every component reading _hydrated stays on false
+   * forever and the app hangs on the splash screen.
+   */
+  markHydrated: () => void;
+};
 
 export const onRehydrate =
   <T extends Hydratable>() =>
   () =>
-  (state?: T) => {
-    if (state) state._hydrated = true;
+  (state?: T, error?: unknown) => {
+    if (error) {
+      // A corrupt or unreadable value must not strand the user on the splash.
+      // Carrying on with defaults is always better than never booting.
+      console.warn('[cobalt] rehydrate failed, continuing with defaults', error);
+    }
+    state?.markHydrated();
   };

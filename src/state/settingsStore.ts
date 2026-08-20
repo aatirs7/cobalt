@@ -28,6 +28,7 @@ export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
       _hydrated: false,
+      markHydrated: () => set({ _hydrated: true }),
       themeKey: DEFAULT_THEME_KEY,
       hapticsEnabled: true,
       soundEnabled: false,
