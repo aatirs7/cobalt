@@ -9,6 +9,8 @@ import { normalize } from '@/engine/difficulty';
 import { GAMES, GAME_KEYS, type GameKey } from '@/engine/types';
 import { haptics } from '@/lib/haptics';
 import { useDateKey, useElapsed } from '@/lib/time';
+import { useMotion } from '@/motion/useMotion';
+import { PLAYABLE } from '@/games/registry';
 import { useProfile } from '@/state/profileStore';
 import { dailySetFor, isSetComplete, useToday } from '@/state/todayStore';
 import { useTheme } from '@/theme/useTheme';
@@ -21,11 +23,10 @@ import { useTheme } from '@/theme/useTheme';
  * while playing, since a visible countdown raises stress and works against the
  * calm positioning.
  *
- * The body is a placeholder that renders the real generated payload and reports
- * a result. That is deliberate and it is the most valuable thing in this
- * milestone: it exercises the entire completion pipeline end to end, from
- * seeded generation through tier freezing, rating update, streak update and the
- * Set Complete transition, without a single real game mechanic existing yet.
+ * The body comes from the registry when the game is implemented. Anything not
+ * yet built falls back to a payload inspector that drives the same completion
+ * pipeline, so a missing game never blocks the set and games can ship one at a
+ * time rather than all at once.
  */
 export default function GameScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
@@ -42,6 +43,7 @@ export default function GameScreen() {
   const recordSetCompleted = useProfile((s) => s.recordSetCompleted);
 
   const elapsed = useElapsed();
+  const { reduced } = useMotion();
   const [settled, setSettled] = useState(false);
 
   const isGame = (GAME_KEYS as readonly string[]).includes(key);
@@ -78,11 +80,10 @@ export default function GameScreen() {
   const slotKeys = set.slots.map((s) => s.gameKey);
   const doneCount = slotKeys.filter((k) => day.plays[k].status === 'completed').length;
 
-  const finish = (rawFraction: number) => {
+  const finishWith = (rawScore: number, _accuracy: number) => {
     if (settled) return;
     setSettled(true);
 
-    const rawScore = Math.round(meta.rawCeiling * rawFraction);
     const normalized = normalize(rawScore, gameKey, tier);
     const elapsedMs = elapsed();
 
@@ -101,6 +102,11 @@ export default function GameScreen() {
     }
   };
 
+  /** Placeholder path only: invents a plausible raw score. */
+  const finish = (rawFraction: number) => {
+    finishWith(Math.round(meta.rawCeiling * rawFraction), rawFraction);
+  };
+
   const close = () => {
     if (!settled && play.status === 'in_progress') {
       abandonPlay(date, gameKey, elapsed());
@@ -108,6 +114,25 @@ export default function GameScreen() {
     router.back();
   };
 
+  const Playable = PLAYABLE[gameKey];
+
+  if (Playable) {
+    return (
+      <Screen>
+        <Header title={meta.name} progress={doneCount / slotKeys.length} onClose={close} />
+        <View style={{ flex: 1, paddingTop: 20 }}>
+          <Playable
+            payload={puzzle.payload as never}
+            reduced={reduced}
+            onFinish={(r) => finishWith(r.rawScore, r.accuracy)}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
+  // Not yet implemented. Renders the real generated payload and drives the same
+  // completion pipeline, so an unbuilt game never blocks the set.
   return (
     <Screen>
       <Header title={meta.name} progress={doneCount / slotKeys.length} onClose={close} />
@@ -119,7 +144,7 @@ export default function GameScreen() {
           </Text>
           <Text variant="body" color="textMuted" style={{ marginTop: 8 }}>
             This is the generated puzzle for {date} at the tier your rating selected. The mechanics
-            land in the next milestone. Everything under it is real.
+            are still to come. Everything under it is real.
           </Text>
         </View>
 
