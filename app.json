@@ -46,13 +46,7 @@
       ],
       "expo-font",
       "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "color": "#4A5D8A",
-          "defaultChannel": "daily"
-        }
-      ]
+      "./plugins/withoutPushEntitlement"
     ],
     "experiments": {
       "typedRoutes": true,

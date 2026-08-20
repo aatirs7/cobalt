@@ -15,6 +15,12 @@ import { Platform } from 'react-native';
  * A JS-only update can reach a build whose binary predates this dependency, and
  * in that case every function here degrades to "not scheduled" instead of
  * crashing the settings screen.
+ *
+ * The expo-notifications config plugin is deliberately not enabled. It adds the
+ * aps-environment entitlement, which requires the Push Notifications capability
+ * on the provisioning profile and fails the build without it. Local scheduled
+ * notifications need none of that, and section 8 excludes push outright, so the
+ * Android channel is created here at runtime instead.
  */
 const IDENTIFIER = 'cobalt-daily-reminder';
 
@@ -61,6 +67,25 @@ export async function requestPermission(): Promise<boolean> {
   }
 }
 
+/**
+ * Android requires a channel before anything can be delivered. Created at
+ * runtime rather than by the config plugin, so no push entitlement is needed.
+ */
+const CHANNEL = 'daily';
+
+async function ensureChannel(N: NotificationsModule): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await N.setNotificationChannelAsync(CHANNEL, {
+      name: 'Daily reminder',
+      importance: N.AndroidImportance.DEFAULT,
+      sound: null,
+    });
+  } catch {
+    // A failed channel only means the notification will not appear on Android.
+  }
+}
+
 /** Cancels any existing reminder. Safe to call when none is scheduled. */
 export async function cancelReminder(): Promise<void> {
   const N = load();
@@ -90,6 +115,7 @@ export async function scheduleReminder(time: string): Promise<boolean> {
   if (!granted) return false;
 
   await cancelReminder();
+  await ensureChannel(N);
 
   try {
     await N.scheduleNotificationAsync({
@@ -105,7 +131,7 @@ export async function scheduleReminder(time: string): Promise<boolean> {
         type: N.SchedulableTriggerInputTypes.DAILY,
         hour: h,
         minute: m,
-        channelId: Platform.OS === 'android' ? 'daily' : undefined,
+        channelId: Platform.OS === 'android' ? CHANNEL : undefined,
       },
     });
     return true;
