@@ -11,7 +11,6 @@ import { haptics } from '@/lib/haptics';
 import { useDateKey, useElapsed } from '@/lib/time';
 import { useProfile } from '@/state/profileStore';
 import { dailySetFor, isSetComplete, useToday } from '@/state/todayStore';
-import { MARGIN } from '@/theme/layout';
 import { useTheme } from '@/theme/useTheme';
 
 /**
@@ -182,6 +181,29 @@ function Header({
   );
 }
 
-export const unstable_settings = { anchor: 'index' };
-export type { GameKey };
-export const MARGIN_REF = MARGIN;
+/**
+ * Route level error boundary, picked up automatically by expo-router.
+ *
+ * A game blowing up should cost the user that game, not the app. Without this,
+ * anything thrown while rendering a puzzle takes down the whole screen with no
+ * way back to Today.
+ */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  return (
+    <Screen>
+      <View style={{ flex: 1, justifyContent: 'center', gap: 18 }}>
+        <Text variant="gameName">This game could not load.</Text>
+        <Text variant="body" color="textMuted">
+          Your streak and the rest of today are unaffected. The other games still work.
+        </Text>
+        <Text variant="body" color="textMuted" style={{ fontSize: 12 }}>
+          {error.message}
+        </Text>
+        <View style={{ gap: 12, marginTop: 12 }}>
+          <Button label="Try again" onPress={() => { void retry(); }} />
+          <Button label="Back to today" onPress={() => router.replace('/(main)/today')} variant="quiet" />
+        </View>
+      </View>
+    </Screen>
+  );
+}
