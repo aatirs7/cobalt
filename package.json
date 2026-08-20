@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lockcheck": "npm ci --dry-run --os=darwin --cpu=arm64",
+    "preflight": "npm run lockcheck && npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
