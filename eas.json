@@ -30,7 +30,9 @@
   "submit": {
     "production": {
       "ios": {
-        "bundleIdentifier": "com.elysiumventures.cobalt"
+        "bundleIdentifier": "com.elysiumventures.cobalt",
+        "appleTeamId": "YS28KD4BC4",
+        "ascAppId": "6803372076"
       }
     }
   }
