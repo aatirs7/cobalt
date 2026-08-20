@@ -1,42 +1,45 @@
 import { Pressable, View } from 'react-native';
-import { SPINE, tickLength, tickOffset , MARGIN } from '@/theme/layout';
+import { MARGIN, RAIL, tickLeft } from '@/theme/layout';
 import { useTheme } from '@/theme/useTheme';
 import { Text } from './Text';
 
 /**
  * One row of the Today screen.
  *
- * The band supplies the mass. The spine, drawn as an absolutely positioned
- * child at a fixed x, supplies the continuity: because consecutive bands touch
- * with no gutter, the segments join into one unbroken line that crosses every
- * seam. That is the whole premise of the direction, and it is also what makes
- * the spine read as an axis rather than as a scrollbar.
+ * The band supplies the mass, the rail at the left margin supplies continuity
+ * and per row state. Because consecutive bands touch with no gutter, their rail
+ * segments join into one unbroken line down the side of the list.
  *
- * Completion is signalled three ways, only one of which is color, so it does
- * not fail for users who cannot distinguish the fill: the band fills, the spine
- * segment thickens, and the tick thickens.
+ * The game name leads the row, because it is the only thing the user taps. The
+ * cognitive domain sits under it as a caption. An earlier version had these the
+ * other way round, which put the least useful text in the position the eye
+ * reaches first.
+ *
+ * Completion is signalled three ways and only one is colour, so it still reads
+ * in Pastel Black where the band alternation measures 1.06 contrast and is
+ * effectively invisible: the band fills, the rail segment thickens, the tick
+ * thickens.
  */
 export type BandTone = 'alt' | 'reg' | 'recessed';
 
 type Props = {
-  slotLabel: string;
   name: string;
-  /** Duration in minutes, or a score once the game is done. */
+  /** Cognitive domain, shown as a caption beneath the name. */
+  domain: string;
+  /** Duration while unplayed, normalized score once done. */
   trailing: string;
-  minutes: number;
   tone: BandTone;
   done?: boolean;
-  /** Crossword sits outside the set, so its spine segment is dotted. */
+  /** Crossword sits outside the set, so its rail segment goes dotted. */
   outside?: boolean;
   fixedHeight?: number;
   onPress?: () => void;
 };
 
 export function Band({
-  slotLabel,
   name,
+  domain,
   trailing,
-  minutes,
   tone,
   done = false,
   outside = false,
@@ -54,12 +57,16 @@ export function Band({
         ? c.surface
         : c.bg;
 
-  // On accentSoft, textMuted measures between 2.28 and 3.17 to 1 depending on
-  // theme, so completed bands use full text throughout. The fill is already
-  // doing the work that muting would otherwise do.
-  const labelColor = done ? 'text' : 'textMuted';
+  // On a completed band the rail and tick are drawn in text, not accent.
+  // Accent on accentSoft measures 4.08 Gray, 2.91 Green, 2.81 Black, so it
+  // would disappear in two themes out of three. Text measures 9.43, 8.20, 5.45.
+  const markColor = done ? c.text : c.line;
 
-  const length = tickLength(minutes);
+  // accentSoft already does the muting a completed row needs, and textMuted on
+  // accentSoft is only 2.28 to 3.17, so completed rows use full text.
+  const captionColor = done ? 'text' : 'textMuted';
+
+  const tickW = done ? RAIL.tickWidthDone : RAIL.tickWidth;
 
   return (
     <Pressable
@@ -71,61 +78,54 @@ export function Band({
         backgroundColor: background,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingRight: MARGIN,
       }}
     >
-      {/* Spine segment. Absolute so it spans the band edge to edge and joins
+      {/* Rail segment. Absolute so it spans the band edge to edge and joins
           seamlessly with its neighbours above and below. */}
       <View
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: done ? SPINE.x - SPINE.completedWidth / 2 : SPINE.x,
+          left: done ? RAIL.x - RAIL.completedWidth / 2 : RAIL.x,
           top: 0,
           bottom: 0,
-          width: done ? SPINE.completedWidth : outside ? 0 : SPINE.restingWidth,
-          backgroundColor: done ? c.text : c.line,
-          borderLeftWidth: outside && !done ? SPINE.restingWidth : 0,
+          width: done ? RAIL.completedWidth : outside ? 0 : RAIL.restingWidth,
+          backgroundColor: done ? markColor : outside ? 'transparent' : c.line,
+          borderLeftWidth: outside && !done ? RAIL.restingWidth : 0,
           borderLeftColor: c.line,
           borderStyle: outside ? 'dotted' : 'solid',
         }}
       />
 
+      {/* Tick, centred on the rail. */}
       <View
+        pointerEvents="none"
         style={{
-          width: SPINE.gutter,
-          paddingRight: SPINE.gutterPad,
-          paddingLeft: MARGIN,
+          position: 'absolute',
+          left: tickLeft(tickW),
+          width: tickW,
+          height: done ? RAIL.completedWidth : RAIL.restingWidth,
+          backgroundColor: outside && !done ? 'transparent' : markColor,
+          borderTopWidth: outside && !done ? RAIL.restingWidth : 0,
+          borderTopColor: c.line,
+          borderStyle: outside ? 'dotted' : 'solid',
         }}
-      >
-        <Text variant="label" color={labelColor} style={{ fontSize: 11, textAlign: 'right' }}>
-          {slotLabel}
-        </Text>
-      </View>
+      />
 
-      <View style={{ width: SPINE.mark, justifyContent: 'center' }}>
-        <View
-          style={{
-            marginLeft: tickOffset(length),
-            width: length,
-            height: done ? SPINE.completedWidth : SPINE.restingWidth,
-            backgroundColor: done ? c.text : outside ? 'transparent' : c.line,
-            borderTopWidth: outside && !done ? SPINE.restingWidth : 0,
-            borderTopColor: c.line,
-            borderStyle: outside ? 'dotted' : 'solid',
-          }}
-        />
-      </View>
-
-      <View style={{ flex: 1, paddingLeft: SPINE.metaPad }}>
-        <Text variant="gameName" color={done ? 'text' : 'text'}>
+      <View style={{ flex: 1, marginLeft: RAIL.bodyOffset }}>
+        <Text variant="gameName" style={{ fontSize: fixedHeight ? 20 : 26 }}>
           {name}
+        </Text>
+        <Text variant="label" color={captionColor} style={{ fontSize: 11, marginTop: 3 }}>
+          {domain}
         </Text>
       </View>
 
       <Text
         variant="label"
-        color={labelColor}
-        style={{ paddingRight: MARGIN, fontVariant: ['tabular-nums'] }}
+        color={captionColor}
+        style={{ fontSize: 11, fontVariant: ['tabular-nums'] }}
       >
         {trailing}
       </Text>

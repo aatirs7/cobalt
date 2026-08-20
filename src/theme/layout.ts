@@ -1,4 +1,4 @@
-/** Layout constants from cobalt-spec.md section 2.4 and the Direction D spine geometry. */
+/** Layout constants from cobalt-spec.md section 2.4 and the Today screen geometry. */
 
 /** Base spacing unit. Multiply, never guess. */
 export const UNIT = 8;
@@ -19,35 +19,37 @@ export const RADIUS = {
 export const HAIRLINE = 1;
 
 /**
- * Direction D geometry. The spine sits at a fixed x on every screen and never
- * moves, which is the whole premise. The gutter to its left carries slot labels
- * right aligned, the mark column straddles it, and content begins after.
+ * The rail.
+ *
+ * Sits just inside the safe margin so it borders the list rather than running
+ * through it. An earlier version placed this axis at x 88, between the domain
+ * label and the game name, which split every row in two and forced the eye to
+ * hop a vertical line to connect the two halves of one row.
+ *
+ * The rail now carries per row state: which games are done, and where they sit
+ * in the list. The five segment meter in the header carries the summary. Two
+ * indicators are only worth having because they answer different questions,
+ * how many versus which.
  */
-export const SPINE = {
-  /** Distance from the screen's left edge to the spine itself. */
-  x: 88,
-  /** Right aligned slot label column, from x 0 to 72. */
-  gutter: 72,
-  gutterPad: 8,
-  /** Column the tick is drawn in, straddling the spine. */
-  mark: 32,
-  /** Gap between the mark column and the game name. */
-  metaPad: 16,
+export const RAIL = {
+  /** Distance from the screen's left edge to the rail. */
+  x: 28,
   restingWidth: 1,
   completedWidth: 2,
+  /** Tick crossing the rail, centred on it. */
+  tickWidth: 18,
+  tickWidthDone: 20,
+  /** Where row content begins, clear of the rail and its ticks. */
+  bodyOffset: 56,
 } as const;
 
-/**
- * Tick length encodes duration. Section 3 of the direction notes this is a
- * learned convention, so the duration is also printed at the band's right edge.
- */
-export function tickLength(minutes: number): number {
-  if (minutes <= 2) return 8;
-  if (minutes === 3) return 12;
-  return 16;
+/** Centres a tick of the given width on the rail. */
+export function tickLeft(width: number): number {
+  return RAIL.x - width / 2;
 }
 
-/** Centers a tick of the given length on the spine, as a left offset inside the mark column. */
-export function tickOffset(length: number): number {
-  return SPINE.x - SPINE.gutter - length / 2;
-}
+/** Header progress meter, five segments for five games. */
+export const METER = {
+  height: 2,
+  gap: 6,
+} as const;
