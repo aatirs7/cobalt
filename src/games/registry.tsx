@@ -1,19 +1,30 @@
 import type { ComponentType } from 'react';
 import type { GameKey } from '@/engine/types';
 import type { GameProps } from './types';
+import { Clusters } from './Clusters';
+import { Five } from './Five';
+import { Pattern } from './Pattern';
 import { Recall } from './Recall';
+import { Reckon } from './Reckon';
 import { Sequence } from './Sequence';
 
 /**
- * Which games are actually playable.
+ * Which games are playable.
  *
- * A key absent from here falls back to the payload inspector, so unimplemented
- * games still exercise the full completion pipeline rather than blocking the
- * set. That is what lets games ship one at a time instead of all at once.
+ * A key absent from here falls back to the payload inspector, so an unbuilt
+ * game never blocks the set. All six of the launch lineup are now present;
+ * Crossword is standalone and lives outside the set entirely.
  */
-export const PLAYABLE: Partial<Record<GameKey, ComponentType<GameProps<never>>>> = {
-  recall: Recall as unknown as ComponentType<GameProps<never>>,
-  sequence: Sequence as unknown as ComponentType<GameProps<never>>,
+type AnyGame = ComponentType<GameProps<never>>;
+const as = (g: unknown) => g as AnyGame;
+
+export const PLAYABLE: Partial<Record<GameKey, AnyGame>> = {
+  five: as(Five),
+  clusters: as(Clusters),
+  recall: as(Recall),
+  sequence: as(Sequence),
+  reckon: as(Reckon),
+  pattern: as(Pattern),
 };
 
 export function isPlayable(key: GameKey): boolean {

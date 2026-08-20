@@ -1,14 +1,15 @@
 import type { Rng } from '../prng';
-import type { PatternPayload, Tier } from '../types';
+import type { PatternItem, PatternPayload, Tier } from '../types';
 import { PATTERN_SHAPES } from '../wordlist';
 
 /**
- * Section 2.10. A 3x3 matrix with the bottom right cell missing, six options.
+ * Pattern, games spec section 2.10.
  *
- * Rules compose across rows and columns. Distractors are generated to be near
- * misses on exactly one rule dimension, which is what separates a real matrix
- * item from a guessable one, and every option is checked against the answer so
- * no distractor is accidentally also correct.
+ * A 3x3 matrix with the bottom right cell missing, six options. Rules compose
+ * across rows and columns. Distractors are near misses on exactly one rule
+ * dimension, which is what separates a real matrix item from a guessable one,
+ * and every option is checked against the answer so no distractor is
+ * accidentally also correct.
  *
  * A cell is three independent attributes encoded as "shape:count:fill". The
  * renderer parses that back out, so adding a fourth dimension later does not
@@ -20,9 +21,10 @@ const encode = (c: Cell) => `${c.shape}:${c.count}:${c.fill}`;
 
 const RULE_COUNT: Record<Tier, 1 | 2 | 3> = { t800: 1, t1200: 2, t1600: 3 };
 
-export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
-  const ruleCount = RULE_COUNT[tier];
+/** Five items per play, which is what the 700 raw ceiling implies. */
+const ITEMS = 5;
 
+function generateItem(rng: Rng, ruleCount: 1 | 2 | 3): PatternItem {
   // Rule 1 is always on: distribution of three. Each row and column contains
   // each of the three shapes exactly once, which is a Latin square.
   const shapes = rng.sample(PATTERN_SHAPES as readonly string[], 3);
@@ -32,11 +34,10 @@ export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
   const progression = ruleCount >= 2;
   const constantCount = (rng.int(3) + 1) as 1 | 2 | 3;
 
-  // Rule 3: fill is constant within a row and cycles down the columns.
+  // Rule 3: fill is constant within a row and alternates down the columns.
   const fillRule = ruleCount >= 3;
-  const fillOrder: ('outline' | 'solid')[] = rng.next() < 0.5
-    ? ['outline', 'solid', 'outline']
-    : ['solid', 'outline', 'solid'];
+  const fillOrder: ('outline' | 'solid')[] =
+    rng.next() < 0.5 ? ['outline', 'solid', 'outline'] : ['solid', 'outline', 'solid'];
 
   const cellAt = (r: number, c: number): Cell => ({
     shape: shapes[(r + c + shapeOffset) % 3],
@@ -63,7 +64,7 @@ export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
     if (n !== answer.count) candidates.push({ ...answer, count: n });
   }
   candidates.push({ ...answer, fill: answer.fill === 'outline' ? 'solid' : 'outline' });
-  // Two dimensions off, to stop every distractor being a single step away.
+  // Two dimensions off, so not every distractor is a single step away.
   for (const s of shapes) {
     if (s !== answer.shape) {
       candidates.push({
@@ -74,7 +75,7 @@ export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
     }
   }
 
-  // Validity check: nothing that encodes to the answer may appear as a distractor.
+  // Validity check: nothing encoding to the answer may appear as a distractor.
   const seen = new Set<string>([answerId]);
   const distractors: string[] = [];
   for (const c of rng.shuffle(candidates)) {
@@ -91,11 +92,13 @@ export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
   if (progression) rules.push('progression');
   if (fillRule) rules.push('fill-constant-in-row');
 
+  return { matrix, rules, options, answerIndex: options.indexOf(answerId) };
+}
+
+export function generatePattern(rng: Rng, tier: Tier): PatternPayload {
+  const ruleCount = RULE_COUNT[tier];
   return {
     kind: 'pattern',
-    matrix,
-    rules,
-    options,
-    answerIndex: options.indexOf(answerId),
+    items: Array.from({ length: ITEMS }, () => generateItem(rng, ruleCount)),
   };
 }

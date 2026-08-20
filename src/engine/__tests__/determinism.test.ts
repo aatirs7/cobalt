@@ -85,9 +85,14 @@ describe('generateDailySet', () => {
       for (const t of TIERS) {
         const p = set.puzzles.pattern[t].payload;
         if (p.kind !== 'pattern') throw new Error('wrong payload');
-        expect(new Set(p.options).size).toBe(p.options.length);
-        expect(p.answerIndex).toBeGreaterThanOrEqual(0);
-        expect(p.options).toHaveLength(6);
+        // Five items per play is what the 700 raw ceiling implies, given the
+        // spec scores correct * 120 plus a time bonus capped at 100.
+        expect(p.items).toHaveLength(5);
+        for (const item of p.items) {
+          expect(new Set(item.options).size).toBe(item.options.length);
+          expect(item.answerIndex).toBeGreaterThanOrEqual(0);
+          expect(item.options).toHaveLength(6);
+        }
       }
     }
   });

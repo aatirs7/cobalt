@@ -104,13 +104,22 @@ export type ReckonPayload = {
   problems: { a: number; op: '+' | '-' | '*' | '/'; b: number; answer: number }[];
 };
 
-export type PatternPayload = {
-  kind: 'pattern';
-  /** 3x3 matrix, bottom right cell missing. Cells are shape ids. */
+/** One matrix item. Nine cells, the last null, encoded "shape:count:fill". */
+export type PatternItem = {
   matrix: (string | null)[];
   rules: string[];
   options: string[];
   answerIndex: number;
+};
+
+export type PatternPayload = {
+  kind: 'pattern';
+  /**
+   * Five items per play. Section 2.10 scores correct * 120 plus a time bonus
+   * capped at 100, which reaches the 700 raw ceiling at exactly five, and a
+   * three minute game needs more than one question anyway.
+   */
+  items: PatternItem[];
 };
 
 export type PuzzlePayload =
