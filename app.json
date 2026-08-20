@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cobalt",
     "slug": "cobalt",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cobalt",
@@ -45,7 +45,14 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#4A5D8A",
+          "defaultChannel": "daily"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

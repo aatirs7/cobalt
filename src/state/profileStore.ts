@@ -18,6 +18,12 @@ const zeroCounts = (): PlayCounts =>
 export type ProfileState = Hydratable & {
   onboardedAt: number | null;
   displayName: string;
+  /**
+   * Group code entered during onboarding, held until groups exist server side.
+   * Storing it means the Join button records a real intent rather than doing
+   * nothing and advancing.
+   */
+  pendingGroupCode: string | null;
   ratings: Ratings;
   playCounts: PlayCounts;
   streak: StreakState;
@@ -27,6 +33,7 @@ export type ProfileState = Hydratable & {
   /** Warm up initialization, onboarding spec section 4. Skipping leaves everything at 1000. */
   seedRatings: (partial: Partial<Ratings>) => void;
   setDisplayName: (name: string) => void;
+  setPendingGroupCode: (code: string | null) => void;
   recordPlay: (gameKey: GameKey, tier: Tier, normalizedScore: number) => void;
   recordSetCompleted: (date: DateKey) => void;
   reset: () => void;
@@ -39,6 +46,7 @@ export const useProfile = create<ProfileState>()(
       markHydrated: () => set({ _hydrated: true }),
       onboardedAt: null,
       displayName: 'You',
+      pendingGroupCode: null,
       ratings: seedRatingsAt(INITIAL_RATING),
       playCounts: zeroCounts(),
       streak: INITIAL_STREAK,
@@ -50,6 +58,9 @@ export const useProfile = create<ProfileState>()(
         set((s) => ({ ratings: { ...s.ratings, ...partial }, updatedAt: Date.now() })),
 
       setDisplayName: (displayName) => set({ displayName, updatedAt: Date.now() }),
+
+      setPendingGroupCode: (pendingGroupCode) =>
+        set({ pendingGroupCode, updatedAt: Date.now() }),
 
       recordPlay: (gameKey, tier, normalizedScore) => {
         const { ratings, playCounts } = get();
@@ -69,6 +80,7 @@ export const useProfile = create<ProfileState>()(
       reset: () =>
         set({
           onboardedAt: null,
+          pendingGroupCode: null,
           ratings: seedRatingsAt(INITIAL_RATING),
           playCounts: zeroCounts(),
           streak: INITIAL_STREAK,

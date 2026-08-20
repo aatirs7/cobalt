@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { OnboardingScreen } from '@/components/OnboardingScreen';
+import { useProfile } from '@/state/profileStore';
 import { RADIUS } from '@/theme/layout';
 import { textStyles } from '@/theme/typography';
 import { useTheme } from '@/theme/useTheme';
@@ -18,7 +19,17 @@ const CODE_LENGTH = 6;
 export default function Friends() {
   const [code, setCode] = useState('');
   const theme = useTheme();
+  const setPendingGroupCode = useProfile((s) => s.setPendingGroupCode);
+
   const next = () => router.push('/(onboarding)/reminder');
+
+  // Groups need a backend, which does not exist yet. Storing the code means
+  // Join records a real intent to be redeemed later, rather than quietly doing
+  // nothing while looking like it worked.
+  const join = () => {
+    setPendingGroupCode(code);
+    next();
+  };
 
   return (
     <OnboardingScreen
@@ -51,7 +62,7 @@ export default function Friends() {
           />
         </View>
       }
-      primary={{ label: 'Join', onPress: next, disabled: code.length < CODE_LENGTH }}
+      primary={{ label: 'Join', onPress: join, disabled: code.length < CODE_LENGTH }}
       secondary={{ label: 'Create a group', onPress: next }}
       skip={{ label: 'Not now', onPress: next }}
     />

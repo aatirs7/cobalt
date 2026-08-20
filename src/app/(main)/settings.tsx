@@ -1,21 +1,51 @@
-import { Pressable, ScrollView, Switch, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { haptics } from '@/lib/haptics';
+import { syncReminder } from '@/lib/reminders';
 import { useProfile } from '@/state/profileStore';
 import { useSettings } from '@/state/settingsStore';
 import { THEMES, THEME_KEYS } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
 /** Base spec section 5.6. */
+function parseTime(value: string | null): Date {
+  const base = new Date(2000, 0, 1, 8, 0, 0);
+  if (!value) return base;
+  const [h, m] = value.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return base;
+  return new Date(2000, 0, 1, h, m, 0);
+}
+
 export default function Settings() {
   const theme = useTheme();
   const c = theme.colors;
   const s = useSettings();
   const resetProfile = useProfile((p) => p.reset);
+
+  const [time, setTime] = useState(() => parseTime(s.reminderTime));
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Spec section 7: the theme picker and reminder settings are both reachable
+  // here, so nothing shown during onboarding is one time only.
+  const applyReminder = async (on: boolean, at: Date) => {
+    if (!on) {
+      await syncReminder(null);
+      s.setReminderTime(null);
+      return;
+    }
+    const hh = String(at.getHours()).padStart(2, '0');
+    const mm = String(at.getMinutes()).padStart(2, '0');
+    const scheduled = await syncReminder(`${hh}:${mm}`);
+    // Permission refused means no stored time, rather than a setting promising
+    // a reminder that will never arrive.
+    s.setReminderTime(scheduled ? `${hh}:${mm}` : null);
+  };
 
   return (
     <Screen>
@@ -89,13 +119,55 @@ export default function Settings() {
           />
         </View>
 
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: 14 }}>
           <Text variant="label" color="textMuted">
             Reminder
           </Text>
-          <Text variant="body" color="textMuted">
-            {s.reminderTime ? `One reminder a day at ${s.reminderTime}.` : 'No reminder.'}
-          </Text>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 12,
+              borderTopWidth: 1,
+              borderTopColor: c.line,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text variant="body">One reminder a day</Text>
+              <Text variant="body" color="textMuted" style={{ fontSize: 13, marginTop: 2 }}>
+                {s.reminderTime ? `At ${s.reminderTime}. Nothing else is ever sent.` : 'Off.'}
+              </Text>
+            </View>
+            <Switch
+              value={s.reminderTime !== null}
+              onValueChange={(v) => {
+                haptics.select();
+                if (v && Platform.OS === 'android') setShowPicker(true);
+                void applyReminder(v, time);
+              }}
+              trackColor={{ false: c.line, true: c.accent }}
+              thumbColor={c.bg}
+            />
+          </View>
+
+          {s.reminderTime !== null && (Platform.OS === 'ios' || showPicker) ? (
+            <View style={{ alignItems: 'flex-start' }}>
+              <DateTimePicker
+                value={time}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'compact' : 'default'}
+                themeVariant={theme.dim ? 'dark' : 'light'}
+                onChange={(_, d) => {
+                  if (Platform.OS === 'android') setShowPicker(false);
+                  if (!d) return;
+                  setTime(d);
+                  void applyReminder(true, d);
+                }}
+              />
+            </View>
+          ) : null}
         </View>
 
         <View style={{ gap: 12 }}>

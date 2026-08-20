@@ -117,6 +117,12 @@ export default function RootLayout() {
             name="set-complete"
             options={{ presentation: 'modal', gestureEnabled: false }}
           />
+          {/* Over the onboarding stack, so its navigation stays out of the
+              six dot progress indicator. */}
+          <Stack.Screen
+            name="warmup-run"
+            options={{ presentation: 'modal', gestureEnabled: false }}
+          />
         </Stack>
 
         {/* Sits above the app, which is already mounted underneath, so the lift

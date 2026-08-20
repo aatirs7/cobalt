@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { OnboardingScreen } from '@/components/OnboardingScreen';
 import { Text } from '@/components/Text';
 import { haptics } from '@/lib/haptics';
+import { syncReminder } from '@/lib/reminders';
 import { useProfile } from '@/state/profileStore';
 import { useSettings } from '@/state/settingsStore';
 import { useTheme } from '@/theme/useTheme';
@@ -32,16 +33,25 @@ export default function Reminder() {
   const setReminderTime = useSettings((s) => s.setReminderTime);
   const completeOnboarding = useProfile((s) => s.completeOnboarding);
 
-  const finish = () => {
+  const finish = async () => {
     if (enabled) {
       const hh = String(time.getHours()).padStart(2, '0');
       const mm = String(time.getMinutes()).padStart(2, '0');
-      setReminderTime(`${hh}:${mm}`);
-      // The permission request belongs here, on Continue, once expo-notifications
-      // is added. Deliberately not requested on screen entry.
+      const at = `${hh}:${mm}`;
+
+      // The permission prompt fires here, on Continue, and only because the
+      // toggle is on. Never on screen entry: asking before the user has opted
+      // in is how apps get permanently denied, and iOS gives one chance.
+      const scheduled = await syncReminder(at);
+
+      // If permission was refused, do not store a time. A setting that claims a
+      // reminder which will never arrive is worse than no setting.
+      setReminderTime(scheduled ? at : null);
     } else {
+      await syncReminder(null);
       setReminderTime(null);
     }
+
     completeOnboarding();
     router.replace('/(main)/today');
   };
@@ -92,8 +102,8 @@ export default function Reminder() {
           ) : null}
         </View>
       }
-      primary={{ label: 'Continue with Apple', onPress: finish }}
-      secondary={{ label: 'Continue without an account', onPress: finish }}
+      primary={{ label: 'Continue with Apple', onPress: () => void finish() }}
+      secondary={{ label: 'Continue without an account', onPress: () => void finish() }}
     />
   );
 }
