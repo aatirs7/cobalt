@@ -100,6 +100,12 @@ export const useToday = create<TodayState>()(
         const play = day.plays[gameKey];
         if (play.status === 'completed') return;
 
+        // Idempotent. A play already running with a frozen tier has nothing to
+        // change, and writing anyway would mint a new day object on every call.
+        // Any effect depending on the day would then re-fire forever, which is
+        // exactly how every game screen locked into an infinite render loop.
+        if (play.status === 'in_progress' && play.tier !== null) return;
+
         // Freeze the tier on first start only.
         const tier = play.tier ?? tierForRating(useProfile.getState().ratings[gameKey]);
 

@@ -49,9 +49,13 @@ export default function GameScreen() {
   const isGame = (GAME_KEYS as readonly string[]).includes(key);
   const gameKey = key as GameKey;
 
+  // Depends on whether the day exists, not on the day object itself. Depending
+  // on the object means every write to the store re-fires this effect, and the
+  // effect writes to the store.
+  const dayExists = day !== undefined;
   useEffect(() => {
-    if (isGame && day) startPlay(date, gameKey);
-  }, [date, gameKey, isGame, day, startPlay]);
+    if (isGame && dayExists) startPlay(date, gameKey);
+  }, [date, gameKey, isGame, dayExists, startPlay]);
 
   // Crossword is standalone and does not touch the set or the streak.
   if (!isGame) {
