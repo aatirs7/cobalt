@@ -30,32 +30,42 @@ describe.each(GAME_KEYS)('%s renders', (key: GameKey) => {
 });
 
 describe('instructions', () => {
-  it('exist for every game, so the help sheet can never render empty', () => {
+  it('exist for every game, so the cards can never render empty', () => {
     for (const key of GAME_KEYS) {
-      const entry = INSTRUCTIONS[key];
-      expect(entry).toBeTruthy();
-      expect(entry.summary.length).toBeGreaterThan(0);
-      expect(entry.steps.length).toBeGreaterThanOrEqual(3);
-      expect(entry.trains.length).toBeGreaterThan(0);
+      expect(INSTRUCTIONS[key].length).toBeGreaterThan(0);
     }
   });
 
-  it('never mentions a tier, a rating or a score number', () => {
-    // Games spec section 3.3: ratings and tiers are never surfaced, and no rank
-    // names. The help text is the easiest place for that to leak.
+  it('stays at three cards or fewer', () => {
+    // These appear in front of a two minute puzzle. If a game needs a fourth
+    // card, the game needs simplifying, not the copy lengthening.
+    for (const key of GAME_KEYS) {
+      expect(INSTRUCTIONS[key].length).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('keeps every card short enough to read at a glance', () => {
+    // Onboarding spec section 6 caps a body block at fourteen words. A card
+    // needing more than that is a paragraph wearing a card's clothes.
+    for (const key of GAME_KEYS) {
+      for (const card of INSTRUCTIONS[key]) {
+        expect(card.split(/\s+/).length).toBeLessThanOrEqual(14);
+      }
+    }
+  });
+
+  it('never mentions a tier, a rating or a rank name', () => {
+    // Games spec section 3.3: ratings and tiers are never surfaced. Prose is
+    // the easiest place for that rule to leak.
     const banned = /\btier\b|\brating\b|\bpoints\b|\belo\b|\badvanced\b|\bbeginner\b|\bexpert\b/i;
     for (const key of GAME_KEYS) {
-      const entry = INSTRUCTIONS[key];
-      const all = [entry.summary, entry.trains, ...entry.steps].join(' ');
-      expect(all).not.toMatch(banned);
+      expect(INSTRUCTIONS[key].join(' ')).not.toMatch(banned);
     }
   });
 
   it('follows the copy rules: no exclamation marks', () => {
     for (const key of GAME_KEYS) {
-      const entry = INSTRUCTIONS[key];
-      const all = [entry.summary, entry.trains, ...entry.steps].join(' ');
-      expect(all).not.toContain('!');
+      expect(INSTRUCTIONS[key].join(' ')).not.toContain('!');
     }
   });
 });

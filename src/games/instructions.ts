@@ -1,105 +1,61 @@
 import type { GameKey } from '@/engine/types';
 
 /**
- * How to play, per game.
+ * How to play, as a few cards you tap through.
  *
- * Copy rules from the onboarding spec section 6 apply here too: sentence case,
- * second person, no exclamation marks, no superlatives, and no claim that any
- * of this improves your brain.
+ * One idea per card, which is the same discipline the onboarding spec applies
+ * to its own screens. Nobody reads a numbered list of rules before a two minute
+ * puzzle, and a wall of bullets is the opposite of the product this is.
  *
- * Deliberately no numbers. Games spec section 3.3 keeps ratings and tiers out
- * of sight, so these describe what to do rather than what anything is worth.
+ * Copy rules from the onboarding spec section 6 hold: sentence case, second
+ * person, no exclamation marks, no superlatives, no cognitive claims, and short
+ * enough to take in at a glance. Games spec 3.3 also means no tiers, ratings or
+ * rank names appear anywhere here.
  */
-export type Instructions = {
-  /** One line on what the game is asking of you. */
-  summary: string;
-  /** How to actually play it. */
-  steps: string[];
-  /** What the game is training, stated plainly and without claims. */
-  trains: string;
-};
+export type Instructions = readonly string[];
 
+/** Three is the ceiling. If a game needs four, the game needs simplifying. */
 export const INSTRUCTIONS: Record<GameKey, Instructions> = {
-  five: {
-    summary: 'Find the hidden five letter word in six guesses.',
-    steps: [
-      'Type any real five letter word and press Enter.',
-      'A filled tile means that letter is in the right place.',
-      'A pale tile means the letter is in the word but somewhere else.',
-      'An empty tile means the letter is not in the word at all.',
-      'The keyboard remembers what you have learned as you go.',
-    ],
-    trains: 'Vocabulary retrieval, and working within a constraint.',
-  },
-
-  clusters: {
-    summary: 'Sort sixteen words into four groups of four.',
-    steps: [
-      'Tap four words that belong together, then Submit.',
-      'A correct group lifts out of the grid and shows what connected it.',
-      'You are told when you are one word away from a group.',
-      'Four mistakes end the round.',
-      'Some words look like they fit two groups. That is the puzzle.',
-    ],
-    trains: 'Spotting categories, and resisting the connection that is not there.',
-  },
-
-  recall: {
-    summary: 'Watch a grid of symbols, then reproduce what was there.',
-    steps: [
-      'Symbols appear briefly, then hide.',
-      'Round one asks where the symbols were.',
-      'Round two asks which symbols you saw.',
-      'Round three asks where one specific symbol was, which is the hard one.',
-      'Tap your answer, then Confirm.',
-    ],
-    trains: 'Holding what something is and where it was at the same time.',
-  },
-
-  sequence: {
-    summary: 'Repeat the order the tiles light up in.',
-    steps: [
-      'Watch the tiles light one at a time.',
-      'Tap them back in the same order.',
-      'Some rounds ask for the order in reverse. Those are worth more.',
-      'Each success adds one to the length.',
-      'Two misses at the same length end the round.',
-    ],
-    trains: 'How much you can hold in order at once.',
-  },
-
-  reckon: {
-    summary: 'Answer as much arithmetic as you can in sixty seconds.',
-    steps: [
-      'Use the number pad. Your answer submits itself once it is long enough.',
-      'The problems get harder as you keep getting them right.',
-      'Wrong answers cost you, so speed alone is not enough.',
-      'The line at the top is the time running down.',
-    ],
-    trains: 'Arithmetic fluency under time pressure.',
-  },
-
-  pattern: {
-    summary: 'Work out the rule, then pick the figure that completes it.',
-    steps: [
-      'Each grid follows rules that run across the rows and down the columns.',
-      'Shape, how many, and whether it is filled can each be part of the rule.',
-      'Pick the figure that belongs in the empty cell.',
-      'You are not told whether you were right, because that would give away the next one.',
-      'There are five grids.',
-    ],
-    trains: 'Finding a rule from examples, with nothing explained to you.',
-  },
-};
-
-/** Crossword is standalone and has no generated payload, so it is separate. */
-export const CROSSWORD_INSTRUCTIONS: Instructions = {
-  summary: 'A small daily crossword, outside the daily set.',
-  steps: [
-    'Crossword does not count toward finishing your set.',
-    'It does not affect your streak either.',
-    'Relaxed mode has no timer and lets you check your work.',
-    'Timed mode records your time and is the one that can post a score.',
+  five: [
+    'Guess the five letter word.',
+    'Filled means right place. Pale means right letter, wrong place.',
+    'You get six tries.',
   ],
-  trains: 'Vocabulary, general knowledge, and lateral thinking.',
+
+  clusters: [
+    'Find the four groups of four.',
+    'Some words look like they belong to two groups.',
+    'Four mistakes ends the round.',
+  ],
+
+  recall: [
+    'Symbols appear, then vanish.',
+    'Tap where they were, or which ones you saw.',
+    'The last round asks for both at once.',
+  ],
+
+  sequence: [
+    'Watch the tiles light up.',
+    'Tap them back in the same order.',
+    'Some rounds ask for reverse.',
+  ],
+
+  reckon: [
+    'Sixty seconds of arithmetic.',
+    'Answers submit themselves once they are long enough.',
+    'Wrong answers cost you, so accuracy still counts.',
+  ],
+
+  pattern: [
+    'Each grid follows a rule.',
+    'Shape, how many, and fill can all be part of it.',
+    'Pick the figure that completes it.',
+  ],
 };
+
+/** Crossword is standalone and has no generated payload, so it sits apart. */
+export const CROSSWORD_INSTRUCTIONS: Instructions = [
+  'A small crossword, every day.',
+  'It sits outside your set and does not touch your streak.',
+  'Relaxed has no timer. Timed does.',
+];
