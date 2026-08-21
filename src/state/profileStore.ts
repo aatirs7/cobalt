@@ -24,6 +24,8 @@ export type ProfileState = Hydratable & {
    * nothing and advancing.
    */
   pendingGroupCode: string | null;
+  /** Games whose instructions have been shown once already. */
+  seenInstructions: GameKey[];
   ratings: Ratings;
   playCounts: PlayCounts;
   streak: StreakState;
@@ -34,6 +36,7 @@ export type ProfileState = Hydratable & {
   seedRatings: (partial: Partial<Ratings>) => void;
   setDisplayName: (name: string) => void;
   setPendingGroupCode: (code: string | null) => void;
+  markInstructionsSeen: (gameKey: GameKey) => void;
   recordPlay: (gameKey: GameKey, tier: Tier, normalizedScore: number) => void;
   recordSetCompleted: (date: DateKey) => void;
   reset: () => void;
@@ -47,6 +50,7 @@ export const useProfile = create<ProfileState>()(
       onboardedAt: null,
       displayName: 'You',
       pendingGroupCode: null,
+      seenInstructions: [],
       ratings: seedRatingsAt(INITIAL_RATING),
       playCounts: zeroCounts(),
       streak: INITIAL_STREAK,
@@ -61,6 +65,13 @@ export const useProfile = create<ProfileState>()(
 
       setPendingGroupCode: (pendingGroupCode) =>
         set({ pendingGroupCode, updatedAt: Date.now() }),
+
+      markInstructionsSeen: (gameKey) =>
+        set((s) =>
+          s.seenInstructions.includes(gameKey)
+            ? s
+            : { seenInstructions: [...s.seenInstructions, gameKey], updatedAt: Date.now() },
+        ),
 
       recordPlay: (gameKey, tier, normalizedScore) => {
         const { ratings, playCounts } = get();
@@ -81,6 +92,7 @@ export const useProfile = create<ProfileState>()(
         set({
           onboardedAt: null,
           pendingGroupCode: null,
+          seenInstructions: [],
           ratings: seedRatingsAt(INITIAL_RATING),
           playCounts: zeroCounts(),
           streak: INITIAL_STREAK,

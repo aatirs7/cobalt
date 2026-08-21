@@ -7,6 +7,7 @@ import { GAME_KEYS, type GameKey, type Tier } from '@/engine/types';
 import { makePlayId } from '@/lib/time';
 import { jsonStorage, KEYS, onRehydrate, SCHEMA_VERSION, type Hydratable } from './storage';
 import { useProfile } from './profileStore';
+import { useSettings } from './settingsStore';
 
 export type PlayStatus = 'not_started' | 'in_progress' | 'completed' | 'abandoned';
 
@@ -107,7 +108,12 @@ export const useToday = create<TodayState>()(
         if (play.status === 'in_progress' && play.tier !== null) return;
 
         // Freeze the tier on first start only.
-        const tier = play.tier ?? tierForRating(useProfile.getState().ratings[gameKey]);
+        const tier =
+          play.tier ??
+          tierForRating(
+            useProfile.getState().ratings[gameKey],
+            useSettings.getState().difficulty,
+          );
 
         set({
           days: {

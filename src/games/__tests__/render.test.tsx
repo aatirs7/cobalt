@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 
 import { PLAYABLE } from '../registry';
+import { INSTRUCTIONS } from '../instructions';
 import { generateDailySet } from '@/engine/generateDailySet';
 import { asDateKey } from '@/engine/dateKey';
 import { GAME_KEYS, TIERS, type GameKey, type Tier } from '@/engine/types';
@@ -25,5 +26,36 @@ describe.each(GAME_KEYS)('%s renders', (key: GameKey) => {
     expect(() =>
       render(<Game payload={puzzle.payload as never} reduced={false} onFinish={() => {}} />),
     ).not.toThrow();
+  });
+});
+
+describe('instructions', () => {
+  it('exist for every game, so the help sheet can never render empty', () => {
+    for (const key of GAME_KEYS) {
+      const entry = INSTRUCTIONS[key];
+      expect(entry).toBeTruthy();
+      expect(entry.summary.length).toBeGreaterThan(0);
+      expect(entry.steps.length).toBeGreaterThanOrEqual(3);
+      expect(entry.trains.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('never mentions a tier, a rating or a score number', () => {
+    // Games spec section 3.3: ratings and tiers are never surfaced, and no rank
+    // names. The help text is the easiest place for that to leak.
+    const banned = /\btier\b|\brating\b|\bpoints\b|\belo\b|\badvanced\b|\bbeginner\b|\bexpert\b/i;
+    for (const key of GAME_KEYS) {
+      const entry = INSTRUCTIONS[key];
+      const all = [entry.summary, entry.trains, ...entry.steps].join(' ');
+      expect(all).not.toMatch(banned);
+    }
+  });
+
+  it('follows the copy rules: no exclamation marks', () => {
+    for (const key of GAME_KEYS) {
+      const entry = INSTRUCTIONS[key];
+      const all = [entry.summary, entry.trains, ...entry.steps].join(' ');
+      expect(all).not.toContain('!');
+    }
   });
 });

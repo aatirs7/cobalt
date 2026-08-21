@@ -8,12 +8,25 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { haptics } from '@/lib/haptics';
 import { syncReminder } from '@/lib/reminders';
+import { DIFFICULTY_PREFERENCES, type DifficultyPreference } from '@/engine/difficulty';
 import { useProfile } from '@/state/profileStore';
 import { useSettings } from '@/state/settingsStore';
 import { THEMES, THEME_KEYS } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
 /** Base spec section 5.6. */
+const DIFFICULTY_LABEL: Record<DifficultyPreference, string> = {
+  easier: 'Easier',
+  adaptive: 'Adaptive',
+  harder: 'Harder',
+};
+
+const DIFFICULTY_NOTE: Record<DifficultyPreference, string> = {
+  easier: 'One step below where your play suggests.',
+  adaptive: 'Follows your play. Recommended.',
+  harder: 'One step above, and worth more when you hold your accuracy.',
+};
+
 function parseTime(value: string | null): Date {
   const base = new Date(2000, 0, 1, 8, 0, 0);
   if (!value) return base;
@@ -168,6 +181,60 @@ export default function Settings() {
               />
             </View>
           ) : null}
+        </View>
+
+        <View style={{ gap: 14 }}>
+          <Text variant="label" color="textMuted">
+            Difficulty
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {DIFFICULTY_PREFERENCES.map((p) => {
+              const active = s.difficulty === p;
+              return (
+                <Pressable
+                  key={p}
+                  onPress={() => {
+                    haptics.select();
+                    s.setDifficulty(p);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 4,
+                    alignItems: 'center',
+                    backgroundColor: active ? c.accent : c.surface,
+                  }}
+                >
+                  <Text variant="label" color={active ? 'bg' : 'textMuted'}>
+                    {DIFFICULTY_LABEL[p]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text variant="body" color="textMuted" style={{ fontSize: 13 }}>
+            {DIFFICULTY_NOTE[s.difficulty]}
+          </Text>
+          <Text variant="body" color="textMuted" style={{ fontSize: 13 }}>
+            This nudges the puzzles you are given. It applies to games you have not started yet
+            today, since a game keeps the level it began on.
+          </Text>
+        </View>
+
+        <View style={{ gap: 12 }}>
+          <Text variant="label" color="textMuted">
+            Calibration
+          </Text>
+          <Text variant="body" color="textMuted" style={{ fontSize: 13 }}>
+            Three short rounds that reset where the puzzles start. No score is shown.
+          </Text>
+          <Button
+            label="Retake the warm-up"
+            onPress={() => router.push('/warmup-run')}
+            variant="quiet"
+          />
         </View>
 
         <View style={{ gap: 12 }}>

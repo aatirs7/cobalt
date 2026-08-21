@@ -18,8 +18,27 @@ export function kFor(playsCount: number): number {
 /** Target success rate is 70 to 75 percent. Below 60 people quit, above 85 there is no load. */
 export const TARGET_SUCCESS = 0.725;
 
+/**
+ * How the user wants the adaptive choice nudged.
+ *
+ * Section 3.3 keeps ratings and tiers out of sight, so this is expressed as a
+ * direction rather than a tier. Adaptive is the honest default; the other two
+ * shift the choice by one variant and no further, which keeps the rating doing
+ * the real work and stops the preference becoming a way to sit permanently on
+ * the easiest puzzles.
+ */
+export const DIFFICULTY_PREFERENCES = ['easier', 'adaptive', 'harder'] as const;
+export type DifficultyPreference = (typeof DIFFICULTY_PREFERENCES)[number];
+
+export const DEFAULT_DIFFICULTY: DifficultyPreference = 'adaptive';
+
+const NUDGE: Record<DifficultyPreference, number> = { easier: -1, adaptive: 0, harder: 1 };
+
 /** The user is served the variant closest to their rating. Section 3.2. */
-export function tierForRating(rating: number): Tier {
+export function tierForRating(
+  rating: number,
+  preference: DifficultyPreference = DEFAULT_DIFFICULTY,
+): Tier {
   let best: Tier = TIERS[0];
   let bestGap = Infinity;
   for (const t of TIERS) {
@@ -34,7 +53,11 @@ export function tierForRating(rating: number): Tier {
       best = t;
     }
   }
-  return best;
+
+  // Shift by at most one variant, clamped, so "easier" on the lowest tier and
+  // "harder" on the highest are simply no-ops rather than errors.
+  const shifted = TIERS.indexOf(best) + NUDGE[preference];
+  return TIERS[Math.max(0, Math.min(TIERS.length - 1, shifted))];
 }
 
 /**

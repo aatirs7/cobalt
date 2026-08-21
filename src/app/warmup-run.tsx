@@ -42,6 +42,8 @@ export default function WarmupRun() {
   const theme = useTheme();
   const { duration } = useMotion();
   const seedRatings = useProfile((s) => s.seedRatings);
+  // Retaking from Settings must not drop the user back into onboarding.
+  const onboarded = useProfile((s) => s.onboardedAt !== null);
 
   const puzzles = useMemo(() => generateWarmup(), []);
   const [index, setIndex] = useState(0);
@@ -61,12 +63,12 @@ export default function WarmupRun() {
       if (index + 1 >= ORDER.length) {
         seedRatings(seeded.current);
         // Straight on. No result screen, and nothing that reads as a score.
-        router.replace('/(onboarding)/friends');
+        router.replace(onboarded ? '/(main)/today' : '/(onboarding)/friends');
       } else {
         setIndex((i) => i + 1);
       }
     },
-    [round, index, seedRatings],
+    [round, index, seedRatings, onboarded],
   );
 
   return (

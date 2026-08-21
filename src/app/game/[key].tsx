@@ -11,6 +11,8 @@ import { haptics } from '@/lib/haptics';
 import { useDateKey, useElapsed } from '@/lib/time';
 import { useMotion } from '@/motion/useMotion';
 import { PLAYABLE } from '@/games/registry';
+import { CROSSWORD_INSTRUCTIONS, INSTRUCTIONS } from '@/games/instructions';
+import { HelpButton, InstructionsSheet } from '@/components/InstructionsSheet';
 import { useProfile } from '@/state/profileStore';
 import { dailySetFor, isSetComplete, useToday } from '@/state/todayStore';
 import { useTheme } from '@/theme/useTheme';
@@ -28,6 +30,8 @@ import { useTheme } from '@/theme/useTheme';
  * pipeline, so a missing game never blocks the set and games can ship one at a
  * time rather than all at once.
  */
+const isGameKey = (v: string): v is GameKey => (GAME_KEYS as readonly string[]).includes(v);
+
 export default function GameScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const date = useDateKey();
@@ -41,12 +45,26 @@ export default function GameScreen() {
   const markSetComplete = useToday((s) => s.markSetComplete);
   const recordPlay = useProfile((s) => s.recordPlay);
   const recordSetCompleted = useProfile((s) => s.recordSetCompleted);
+  const markInstructionsSeen = useProfile((s) => s.markInstructionsSeen);
 
   const elapsed = useElapsed();
   const { reduced } = useMotion();
   const [settled, setSettled] = useState(false);
 
-  const isGame = (GAME_KEYS as readonly string[]).includes(key);
+  // Instructions open by themselves the first time a game is opened, then only
+  // from the question mark. Derived at mount rather than set from an effect:
+  // calling setState synchronously in an effect is what caused the render loop
+  // that took out every game, and this needs no effect at all.
+  const [helpOpen, setHelpOpen] = useState(
+    () => !useProfile.getState().seenInstructions.includes(key as GameKey),
+  );
+
+  const closeHelp = () => {
+    setHelpOpen(false);
+    if (isGameKey(key)) markInstructionsSeen(key);
+  };
+
+  const isGame = isGameKey(key);
   const gameKey = key as GameKey;
 
   // Depends on whether the day exists, not on the day object itself. Depending
@@ -61,7 +79,13 @@ export default function GameScreen() {
   if (!isGame) {
     return (
       <Screen>
-        <Header title="Crossword" progress={0} />
+        <Header title="Crossword" progress={0} onHelp={() => setHelpOpen(true)} />
+        <InstructionsSheet
+          title="Crossword"
+          instructions={CROSSWORD_INSTRUCTIONS}
+          visible={helpOpen}
+          onClose={closeHelp}
+        />
         <View style={{ flex: 1, justifyContent: 'center', gap: 12 }}>
           <Text variant="body" color="textMuted">
             Crossword sits outside the daily set. It does not count toward completion or the streak.
@@ -123,7 +147,18 @@ export default function GameScreen() {
   if (Playable) {
     return (
       <Screen>
-        <Header title={meta.name} progress={doneCount / slotKeys.length} onClose={close} />
+        <Header
+          title={meta.name}
+          progress={doneCount / slotKeys.length}
+          onClose={close}
+          onHelp={() => setHelpOpen(true)}
+        />
+        <InstructionsSheet
+          title={meta.name}
+          instructions={INSTRUCTIONS[gameKey]}
+          visible={helpOpen}
+          onClose={closeHelp}
+        />
         <View style={{ flex: 1, paddingTop: 20 }}>
           <Playable
             payload={puzzle.payload as never}
@@ -139,7 +174,18 @@ export default function GameScreen() {
   // completion pipeline, so an unbuilt game never blocks the set.
   return (
     <Screen>
-      <Header title={meta.name} progress={doneCount / slotKeys.length} onClose={close} />
+      <Header
+        title={meta.name}
+        progress={doneCount / slotKeys.length}
+        onClose={close}
+        onHelp={() => setHelpOpen(true)}
+      />
+      <InstructionsSheet
+        title={meta.name}
+        instructions={INSTRUCTIONS[gameKey]}
+        visible={helpOpen}
+        onClose={closeHelp}
+      />
 
       <ScrollView contentContainerStyle={{ paddingVertical: 24, gap: 20 }}>
         <View>
@@ -181,21 +227,26 @@ function Header({
   title,
   progress,
   onClose,
+  onHelp,
 }: {
   title: string;
   progress: number;
   onClose?: () => void;
+  onHelp?: () => void;
 }) {
   const theme = useTheme();
   return (
     <View style={{ paddingTop: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text variant="gameName">{title}</Text>
-        <Pressable onPress={onClose ?? (() => router.back())} hitSlop={16}>
-          <Text variant="label" color="textMuted">
-            Close
-          </Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          {onHelp ? <HelpButton onPress={onHelp} /> : null}
+          <Pressable onPress={onClose ?? (() => router.back())} hitSlop={16}>
+            <Text variant="label" color="textMuted">
+              Close
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <View style={{ height: 1, backgroundColor: theme.colors.line, marginTop: 14 }}>
         <View

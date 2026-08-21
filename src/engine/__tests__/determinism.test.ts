@@ -190,3 +190,35 @@ describe('difficulty', () => {
     expect(early).toBeGreaterThan(later);
   });
 });
+
+/**
+ * The difficulty preference, which nudges the adaptive choice by at most one
+ * variant. Games spec section 3.3 keeps tiers out of sight, so this is a
+ * direction rather than a picker, and it must never let someone park on the
+ * easiest puzzles permanently.
+ */
+describe('difficulty preference', () => {
+  it('shifts by exactly one variant, never more', () => {
+    expect(tierForRating(1200, 'adaptive')).toBe('t1200');
+    expect(tierForRating(1200, 'easier')).toBe('t800');
+    expect(tierForRating(1200, 'harder')).toBe('t1600');
+  });
+
+  it('clamps at both ends rather than falling off', () => {
+    // Already on the easiest, asking for easier is a no-op, not undefined.
+    expect(tierForRating(800, 'easier')).toBe('t800');
+    expect(tierForRating(1600, 'harder')).toBe('t1600');
+  });
+
+  it('defaults to adaptive when no preference is given', () => {
+    expect(tierForRating(1600)).toBe(tierForRating(1600, 'adaptive'));
+  });
+
+  it('still cannot beat playing up, because the multiplier survives', () => {
+    // Sandbagging check. Section 4.1 exists so that dropping a tier costs more
+    // than it gains, and the preference must not become a way around it.
+    const sameRawEasier = normalize(600, 'pattern', tierForRating(1200, 'easier'));
+    const sameRawHarder = normalize(600, 'pattern', tierForRating(1200, 'harder'));
+    expect(sameRawHarder).toBeGreaterThan(sameRawEasier);
+  });
+});

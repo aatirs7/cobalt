@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_DIFFICULTY, type DifficultyPreference } from '@/engine/difficulty';
 import { DEFAULT_THEME_KEY, type ThemeKey } from '@/theme/tokens';
 import { jsonStorage, KEYS, onRehydrate, SCHEMA_VERSION, type Hydratable } from './storage';
 
@@ -14,6 +15,11 @@ export type SettingsState = Hydratable & {
   reminderTime: string | null;
   /** Appends a link to the share card. Off by default, games spec section 6. */
   shareIncludesLink: boolean;
+  /**
+   * Nudges the adaptive tier by at most one variant. Never surfaced as a tier
+   * or a number, per games spec section 3.3.
+   */
+  difficulty: DifficultyPreference;
   updatedAt: number;
 
   setTheme: (key: ThemeKey) => void;
@@ -22,6 +28,7 @@ export type SettingsState = Hydratable & {
   setReduceMotion: (on: boolean) => void;
   setReminderTime: (time: string | null) => void;
   setShareIncludesLink: (on: boolean) => void;
+  setDifficulty: (value: DifficultyPreference) => void;
 };
 
 export const useSettings = create<SettingsState>()(
@@ -35,6 +42,7 @@ export const useSettings = create<SettingsState>()(
       reduceMotion: false,
       reminderTime: null,
       shareIncludesLink: false,
+      difficulty: DEFAULT_DIFFICULTY,
       updatedAt: 0,
 
       setTheme: (themeKey) => set({ themeKey, updatedAt: Date.now() }),
@@ -43,6 +51,7 @@ export const useSettings = create<SettingsState>()(
       setReduceMotion: (reduceMotion) => set({ reduceMotion, updatedAt: Date.now() }),
       setReminderTime: (reminderTime) => set({ reminderTime, updatedAt: Date.now() }),
       setShareIncludesLink: (shareIncludesLink) => set({ shareIncludesLink, updatedAt: Date.now() }),
+      setDifficulty: (difficulty) => set({ difficulty, updatedAt: Date.now() }),
     }),
     {
       name: KEYS.settings,
