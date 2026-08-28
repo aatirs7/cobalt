@@ -44,3 +44,16 @@ app-example
 
 # Local
 /dist
+
+# Secrets. The repo is public, so match every env file rather than only
+# the .local variants the template shipped with.
+.env
+.env.*
+!.env.example
+
+# Apple and Google signing material, in case anything is ever generated locally.
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks
